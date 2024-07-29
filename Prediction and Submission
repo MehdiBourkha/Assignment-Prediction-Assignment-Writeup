@@ -1,0 +1,9 @@
+# Preprocess test data similarly as training data
+test_data.drop(columns=columns_to_drop, inplace=True)
+X_test = test_data[selected_features]
+
+# Make predictions on test data
+test_predictions = best_rf_clf.predict(X_test)
+
+# Output predictions (if needed for submission)
+print("Predictions for test data:", test_predictions)
