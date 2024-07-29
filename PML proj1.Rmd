@@ -1,0 +1,128 @@
+---
+title: "Practical Machine Learning Project"
+date: "2024-07-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, error = FALSE)
+```
+
+# Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website [here](http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har)
+ (see the section on the Weight Lifting Exercise Dataset). The goal of this project is to predict the manner in which they did the exercise.
+
+# Data
+The training data for this project are available [here](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
+
+The test data are available [here](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv)
+
+The data for this project come from this source: [http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har](http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har)
+.
+
+# Load data and libraries
+```{r}
+# Read files
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+
+# Load libraries
+library(caret)
+library(nnet)
+library(e1071)
+library(xgboost)
+library(kernlab)
+library(corrplot)
+library(randomForest)
+library(ggplot2)
+```
+
+# Data preprocessing
+```{r}
+# Remove unnecessary variables and NA variables.
+training <- training[,-c(1:7)]
+training <- training[,colMeans(is.na(training)) < 0.9]
+
+# Remove near zero variance variables.
+nzv <- nearZeroVar(training)
+training <- training[,-nzv]
+dim(training)
+
+# Subset sub-training and validation set
+set.seed(42)
+inTrain <- createDataPartition(training$classe, p=0.7, list=F)
+subTrain <- training[inTrain,]
+validation <- training[-inTrain,]
+```
+
+# Model fitting and Cross validation
+I will compare 4 models such as Multinomial Linear Model, Random Forest, Gradient Boosted Trees, Support Vector Machine.
+
+To evaluate the generalization performance of our model, I used 5-fold cross validation.
+```{r, cache=TRUE}
+# Set up 5-fold cross validation
+set.seed(42)
+train_control <- trainControl(method="cv", number=5, verboseIter=FALSE)
+```
+
+## Multinomial Linear Model
+```{r, cache=TRUE}
+# Model fitting
+mnom_model <- train(classe ~., data=subTrain, method="multinom", trControl=train_control, trace=FALSE)
+
+# Prediction
+mnom_pred <- predict(mnom_model, validation)
+mnom_CM <- confusionMatrix(mnom_pred, factor(validation$classe))
+mnom_CM
+```
+
+## Random Forest
+```{r, cache=TRUE}
+# Model fitting
+rf_model <- train(classe ~., data=subTrain, method="rf", trControl=train_control)
+
+# Prediction
+rf_pred <- predict(rf_model, validation)
+rf_CM <- confusionMatrix(rf_pred, factor(validation$classe))
+rf_CM
+```
+
+## Gradient Boosted Trees
+```{r, cache=TRUE}
+# Model fitting
+gbm_model <- train(classe ~., data=subTrain, method="gbm", trControl=train_control, verbose=FALSE)
+
+# Prediction
+gbm_pred <- predict(gbm_model, validation)
+gbm_CM <- confusionMatrix(gbm_pred, factor(validation$classe))
+gbm_CM
+```
+
+## Support Vector Machine
+```{r, cache=TRUE}
+# Model fitting
+svm_model <- train(classe ~., data=subTrain, method="svmRadial", trControl=train_control, verbose=FALSE, tuneLength=3)
+
+# Prediction
+svm_pred <- predict(svm_model, validation)
+svm_CM <- confusionMatrix(svm_pred, factor(validation$classe))
+svm_CM
+```
+
+## Model selection
+```{r}
+models <- c("Multinom", "RF", "GBM", "SVM")
+accuracy <- c(mnom_CM$overall[1], rf_CM$overall[1], gbm_CM$overall[1], svm_CM$overall[1])
+oos_error <- 1-accuracy
+
+data.frame(accuracy = accuracy, oos_error = oos_error, row.names = models)
+```
+
+The best model is Random Forest model, which has the highest accuracy (`r rf_CM$overall[1]`) and the lowest expected out of sample error (`r 1-rf_CM$overall[1]`). I used this model to apply test set.
+
+
+# Prediction on Test set
+```{r}
+pred_test <- predict(rf_model, testing)
+pred_test
+```
