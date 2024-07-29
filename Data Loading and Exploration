@@ -1,0 +1,24 @@
+import pandas as pd
+
+# Load training data
+train_url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+train_data = pd.read_csv(train_url)
+
+# Load testing data
+test_url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+test_data = pd.read_csv(test_url)
+
+# Explore the structure and summary of training data
+print("Training data shape:", train_data.shape)
+print("Testing data shape:", test_data.shape)
+
+print("\nColumns in training data:")
+print(train_data.columns)
+
+# Summary statistics
+print("\nSummary statistics of training data:")
+print(train_data.describe())
+
+# Check for missing values
+print("\nMissing values in training data:")
+print(train_data.isnull().sum())
