@@ -1,0 +1,15 @@
+# Perform feature selection using correlation matrix or feature importance techniques
+corr_matrix = train_data.corr()
+# Visualize correlation matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(12, 10))
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
+plt.title('Correlation Matrix')
+plt.show()
+
+# Based on correlation analysis, select relevant features
+selected_features = ['roll_belt', 'pitch_belt', 'yaw_belt', 'total_accel_belt', ...]
+X_train = train_data[selected_features]
+y_train = train_data['classe']
